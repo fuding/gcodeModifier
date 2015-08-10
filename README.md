@@ -1,5 +1,5 @@
 # gcodeModifier
-This program modifies gcode (from RepRap software with slic3r) by alterating position-values of one whole gcode-file of a certain axis by a certain value.
+This program modifies gcode (from RepRap software with slic3r) by alterating position-values/commands(G1) of certain axis by certain values in one whole gcode-file.
 This is usefull to change the position of your model after slicing or when you have problems with the positioning system of your printer (reason why i build this).
 In this case you can give your printer a model with an integrated offset so that he prints correctly.
 
