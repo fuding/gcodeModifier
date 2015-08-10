@@ -6,10 +6,6 @@
  Script Function:
 	Modify values in gcode
 
- TODO:
- -check whether needed variables are filled
- -improve coma-check
- -solve bug wrong filewriting
 #ce ----------------------------------------------------------------------------
 #include-once
 #include <Constants.au3>
@@ -20,9 +16,9 @@
 Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest1.gcode"
 Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest2.gcode"
 Global $values[3] ;0 = x, 1 = y, 2 = z
-$values[0] = -3000
-$values[1] = 3000
-$values[2] = 3000
+$values[0] = 0
+$values[1] = 0
+$values[2] = 0
 
 Global $labelsAxis[3]
 $labelsAxis[0] = "X"
@@ -42,10 +38,10 @@ Func clearFile($logfile)
    FileClose($handle)
 EndFunc
 
-Func updateAndCheckFileInput($fileString, $inp)
+Func updateAndCheckInputContent($fileString, $inp)
    $fileString = GUICtrlRead($inp)
    If $fileString == "" Then
-	  MsgBox($MB_OKCANCEL + $MB_ICONERROR, "Error", "Please choose a valid file.")
+	  MsgBox($MB_OK + $MB_ICONERROR, "Error", "Please enter a valid content into the input with the ID " & $inp &  ".")
 	  Return False
    Else
 	  Return True
@@ -113,17 +109,17 @@ For $i = 0 To 2
    GUICtrlCreateLabel($labelsAxis[$i] & ':', $paddingX, $top, $axisLabelWidth, $objHeight)
    $inptsAxis[$i] = GUICtrlCreateInput($values[$i], $paddingX + $axisLabelWidth, $top, $width - $paddingX - $axisLabelWidth, $objHeight)
    GUICtrlCreateUpdown($inptsAxis[$i])
-   GUICtrlSetOnEvent($inptsAxis[$i], "updateValues")
+   GUICtrlSetOnEvent($inptsAxis[$i], "updateAndChecValues")
    $top += $objHeight
 Next
-   Func updateValues()
+   Func updateAndChecValues()
+	  $success = True
 	  For $index = 0 To 2
-		 $values[$index] = Number(GUICtrlRead($inptsAxis[$index]))
-		 If StringInStr(String($values[$index]), ",") Then
-			MsgBox($MB_OK + $MB_ICONWARNING, "this won't work", "Please use a point instead of a comma as seperator.")
+		 If updateAndCheckInputContent($values[$index], $inptsAxis[$index]) = False Then
+			$success = False
 		 EndIf
-		 ;MsgBox(0, $index, $values[$index])
 	  Next
+	  Return $success
    EndFunc
 ;===============================================================================================================================================
 $objHeight = 50
@@ -147,17 +143,16 @@ WEnd
 
 
    Func main()
-	  updateValues()
-	  updateAndCheckFileInput($fileNameAndPath, $inpInpFile)
-	  updateAndCheckFileInput($saveFileNameAndPath, $inpOutpFile)
+	  If Not (updateAndChecValues() And updateAndCheckInputContent($fileNameAndPath, $inpInpFile) And updateAndCheckInputContent($saveFileNameAndPath, $inpOutpFile)) Then
+		 Return False
+	  EndIf
 
 	  For $i = 0 To 2
 		 $doModify[$i] = $values[$i] <> 0
-		 ;MsgBox(0,"",$doModify[$i])
 	  Next
 
 	  If $doModify[0] Or $doModify[1] Or $doModify[2] Then
-		 ;program
+
 		 ProgressOn("progress", "starting...", "reading file " & '"' & $fileNameAndPath & '"' & "into array", -1, -1, $DLG_MOVEABLE + $DLG_NOTONTOP)
 
 		 $timeOld = _NowCalc()
@@ -180,8 +175,6 @@ WEnd
 					 $newValue = Round($oldValue + $values[$innerIndex], 3)
 					 $oldLine = $line
 					 $line = StringReplace($line, $oldValue, $newValue)
-					 ;MsgBox(0, $line, $oldLine & "; " & $labelsAxis[$innerIndex] & ": " & $values[$innerIndex])
-					 ;$status = "modified " & $labelsAxis[$innerIndex] & "-value"
 				  EndIf
 			   EndIf
 			Next
