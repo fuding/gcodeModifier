@@ -17,8 +17,8 @@
 #include <Date.au3>
 #include <GUIConstants.au3>
 
-Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\newZValuesCodeSnailShield.gcode"
-Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test.gcode"
+Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest1.gcode"
+Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest2.gcode"
 Global $values[3] ;0 = x, 1 = y, 2 = z
 $values[0] = -3000
 $values[1] = 3000
@@ -42,6 +42,16 @@ Func clearFile($logfile)
    FileClose($handle)
 EndFunc
 
+Func updateAndCheckFileInput($fileString, $inp)
+   $fileString = GUICtrlRead($inp)
+   If $fileString == "" Then
+	  MsgBox($MB_OKCANCEL + $MB_ICONERROR, "Error", "Please choose a valid file.")
+	  Return False
+   Else
+	  Return True
+   EndIf
+EndFunc
+
 $width = 500
 $height = 500
 $fileButtonWidth = 50
@@ -59,7 +69,7 @@ Func _Exit()
 EndFunc
 GUICtrlCreateLabel("input file", $paddingX, $top + 5)
 $top += $objHeight
-$inpInpFile = GUICtrlCreateInput($saveFileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
+$inpInpFile = GUICtrlCreateInput($fileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
 $btnInpFile = GUICtrlCreateButton("Browse", $width - $fileButtonWidth - $paddingX, $top, $fileButtonWidth, $objHeight)
 GUICtrlSetOnEvent($btnInpFile, "_addInpFile")
    Func _addInpFile()
@@ -76,7 +86,7 @@ GUICtrlSetOnEvent($btnInpFile, "_addInpFile")
 $top += $objHeight
 GUICtrlCreateLabel("output file", $paddingX, $top + 5)
 $top += $objHeight
-$inpOutpFile = GUICtrlCreateInput($fileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
+$inpOutpFile = GUICtrlCreateInput($saveFileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
 $btnOutpFile = GUICtrlCreateButton("Browse", $width - $fileButtonWidth - $paddingX, $top, $fileButtonWidth, $objHeight)
 $top += $objHeight
 GUICtrlSetOnEvent($btnOutpFile, "_addOutpFile")
@@ -138,12 +148,13 @@ WEnd
 
    Func main()
 	  updateValues()
+	  updateAndCheckFileInput($fileNameAndPath, $inpInpFile)
+	  updateAndCheckFileInput($saveFileNameAndPath, $inpOutpFile)
+
 	  For $i = 0 To 2
 		 $doModify[$i] = $values[$i] <> 0
 		 ;MsgBox(0,"",$doModify[$i])
 	  Next
-
-	  clearFile($saveFileNameAndPath)
 
 	  If $doModify[0] Or $doModify[1] Or $doModify[2] Then
 		 ;program
@@ -154,9 +165,12 @@ WEnd
 		 $array = FileReadToArray($fileNameAndPath)
 		 $arraySize = UBound($array)
 
-		 $status = ""
-		 For $i = 0 To $arraySize - 1
+		 clearFile($saveFileNameAndPath)
 
+		 $status = ""
+		 $saveIndex = 0
+		 $step = 100
+		 For $i = 0 To $arraySize - 1
 			$line = $array[$i]
 			For $innerIndex = 0 to 2
 			   If $doModify[$innerIndex] Then
@@ -172,8 +186,11 @@ WEnd
 			   EndIf
 			Next
 			FileWriteLine($saveFileNameAndPath, $line)
-			$progressPercent = Round($i / $arraySize * 100)
-			ProgressSet($progressPercent, "line " & $i +1 & " of " & $arraySize & " (" & $progressPercent & "%)" , $status)
+			If $i + 1 >= $saveIndex + $step Or $i + 1 = $arraySize Then
+			   $progressPercent = Round($i / $arraySize * 100)
+			   ProgressSet($progressPercent, "line " & $i + 1 & " of " & $arraySize & " (" & $progressPercent & "%)" , $status)
+			   $saveIndex += $step
+			EndIf
 		 Next
 
 		 $timeNew = _NowCalc()
