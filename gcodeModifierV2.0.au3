@@ -9,6 +9,7 @@
  TODO:
  -check whether needed variables are filled
  -improve coma-check
+ -solve bug wrong filewriting
 #ce ----------------------------------------------------------------------------
 #include-once
 #include <Constants.au3>
@@ -20,8 +21,8 @@ Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\newZValuesCode
 Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test.gcode"
 Global $values[3] ;0 = x, 1 = y, 2 = z
 $values[0] = -3000
-$values[1] = 2688
-$values[2] = 1000
+$values[1] = 3000
+$values[2] = 3000
 
 Global $labelsAxis[3]
 $labelsAxis[0] = "X"
@@ -97,7 +98,7 @@ $width = $width * 0.5
 GUICtrlCreateLabel("modify position of model (in mm):", $paddingX, $top, $width - $paddingX, $objHeight)
 $top += $objHeight
 
-Local $inptsAxis[3]
+Global $inptsAxis[3]
 For $i = 0 To 2
    GUICtrlCreateLabel($labelsAxis[$i] & ':', $paddingX, $top, $axisLabelWidth, $objHeight)
    $inptsAxis[$i] = GUICtrlCreateInput($values[$i], $paddingX + $axisLabelWidth, $top, $width - $paddingX - $axisLabelWidth, $objHeight)
@@ -109,7 +110,7 @@ Next
 	  For $index = 0 To 2
 		 $values[$index] = Number(GUICtrlRead($inptsAxis[$index]))
 		 If StringInStr(String($values[$index]), ",") Then
-			MsgBox($MB_OK + $MB_ICONERROR, "this won't work", "Please use a point instead of a comma as seperator.")
+			MsgBox($MB_OK + $MB_ICONWARNING, "this won't work", "Please use a point instead of a comma as seperator.")
 		 EndIf
 		 ;MsgBox(0, $index, $values[$index])
 	  Next
@@ -136,6 +137,7 @@ WEnd
 
 
    Func main()
+	  updateValues()
 	  For $i = 0 To 2
 		 $doModify[$i] = $values[$i] <> 0
 		 ;MsgBox(0,"",$doModify[$i])
@@ -158,28 +160,27 @@ WEnd
 			$line = $array[$i]
 			For $innerIndex = 0 to 2
 			   If $doModify[$innerIndex] Then
-				  $matches = StringRegExp($line, "G1.*" & $labelsAxis[$innerIndex] & "([0-9]+.[0-9]+)", $STR_REGEXPARRAYMATCH)
+				  $matches = StringRegExp($line, "G1.*" & $labelsAxis[$innerIndex] & "(-?[0-9]+.[0-9]+)", $STR_REGEXPARRAYMATCH)
 				  If $matches <> 0 Then ;when there is a occurence of axis-values
 					 $oldValue = $matches[0]
-					 $newValue = Round($oldValue - $values[$innerIndex], 3)
-					 ;MsgBox(0, $newValue, $oldValue)
+					 $newValue = Round($oldValue + $values[$innerIndex], 3)
 					 $oldLine = $line
 					 $line = StringReplace($line, $oldValue, $newValue)
-					 ;MsgBox(0, $line, $oldLine)
+					 ;MsgBox(0, $line, $oldLine & "; " & $labelsAxis[$innerIndex] & ": " & $values[$innerIndex])
 					 ;$status = "modified " & $labelsAxis[$innerIndex] & "-value"
 				  EndIf
 			   EndIf
 			Next
 			FileWriteLine($saveFileNameAndPath, $line)
-			$progressPercent = Round($i / $arraySize * 100, 2)
+			$progressPercent = Round($i / $arraySize * 100)
 			ProgressSet($progressPercent, "line " & $i +1 & " of " & $arraySize & " (" & $progressPercent & "%)" , $status)
 		 Next
 
 		 $timeNew = _NowCalc()
 		 $neededTime = _DateDiff("s", $timeOld, $timeNew)
-		 $hours = Floor($neededTime/360)
-		 $minutes = Floor(($neededTime - $hours * 360)/ 60)
-		 $seconds = $neededTime - $minutes * 60 - $hours * 360
+		 $hours = Floor($neededTime/3600)
+		 $minutes = Floor(($neededTime - $hours * 3600)/ 60)
+		 $seconds = $neededTime - $minutes * 60 - $hours * 3600
 
 
 		 MsgBox($MB_OK + $MB_ICONINFORMATION, "Finished", "Process finished after " & $hours & "h " & $minutes & "min " & $seconds & "s (" & $neededTime & "s)." & @CRLF & $arraySize & " lines have been copied/modified.")
