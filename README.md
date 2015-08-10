@@ -9,8 +9,8 @@ In this case you can give your printer a model with an integrated offset so that
 This program is only tested with gcode generated from "slic3r" by the reprap-software.
 
 Context-help:
--gcode is a list of commands for a 3d-printer which is generated out of .stl or other 3d-files.
--reprap is a company which produces 3d-printers
--slic3r is a slicer(program which converts CAD-files to gcode)
+* gcode is a list of commands for a 3d-printer which is generated out of .stl or other 3d-files.
+* reprap is a company which produces 3d-printers
+* slic3r is a slicer(program which converts CAD-files to gcode)
 
 AutoIt is only for Windows. Im sorry for Linuxusers. Maybe i do find the enthusiasm to write this programm with Qt (when i know, sb. uses my script).
