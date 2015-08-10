@@ -13,8 +13,8 @@
 #include <Date.au3>
 #include <GUIConstants.au3>
 
-Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest1.gcode"
-Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\test\bugfixTest\bugfixTest2.gcode"
+Global $fileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\gcodeModifier\test\test1.gcode"
+Global $saveFileNameAndPath = "C:\Users\Marvin\Documents\3D-Druck\gcodeModifier\test\test2.gcode"
 Global $values[3] ;0 = x, 1 = y, 2 = z
 $values[0] = 0
 $values[1] = 0
@@ -40,7 +40,7 @@ EndFunc
 
 Func updateAndCheckInputContent($fileString, $inp)
    $fileString = GUICtrlRead($inp)
-   If $fileString == "" Then
+   If $fileString = "" Then
 	  MsgBox($MB_OK + $MB_ICONERROR, "Error", "Please enter a valid content into the input with the ID " & $inp &  ".")
 	  Return False
    Else
@@ -115,10 +115,13 @@ Next
    Func updateAndChecValues()
 	  $success = True
 	  For $index = 0 To 2
-		 If updateAndCheckInputContent($values[$index], $inptsAxis[$index]) = False Then
+		 $values[$index] = GUICtrlRead($inptsAxis[$index])
+		 If $values[$index] = "" Then
+			MsgBox($MB_OK + $MB_ICONERROR, "Error", "Please enter a valid content into the input with the ID " & $inp &  ".")
 			$success = False
 		 EndIf
 	  Next
+
 	  Return $success
    EndFunc
 ;===============================================================================================================================================
@@ -195,7 +198,7 @@ WEnd
 
 		 MsgBox($MB_OK + $MB_ICONINFORMATION, "Finished", "Process finished after " & $hours & "h " & $minutes & "min " & $seconds & "s (" & $neededTime & "s)." & @CRLF & $arraySize & " lines have been copied/modified.")
 		 ProgressOff()
-	 Else
+	  Else
 		 MsgBox($MB_OK, "no changes", "G-code doesn't need to be changed, because modifcation-values haven't been altered.")
 	  EndIf
    EndFunc
