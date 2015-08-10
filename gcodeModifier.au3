@@ -9,6 +9,7 @@
 #ce ----------------------------------------------------------------------------
 #include <Constants.au3>
 #include <MsgBoxConstants.au3>
+#include <Date.au3>
 
 Func checkForErrorDoBadExit($input)
    If @error Or $input = "" Then
@@ -32,7 +33,7 @@ $fileNameAndPath = FileOpenDialog("load gcode file", "C:\Users\Marvin\Documents\
 checkForErrorDoBadExit($fileNameAndPath)
 $saveFileNameAndPath = FileSaveDialog("choose file to save modified content", "C:\Users\Marvin\Documents\3D-Druck","Gcode-files (*.gcode)| All (*.*)",  $FD_PROMPTOVERWRITE)
 checkForErrorDoBadExit($saveFileNameAndPath)
-$axis = InputBox("choose the axis", "Please enter the axis in what you want to alterate the position of the model which is represented by you gcode." & @CRLF & "!!! Do use tall letters !!!")
+$axis = InputBox("choose the axis", "Please enter the axis in what you want to alterate the position of the model which is represented by your gcode." & @CRLF & "!!! Do use tall letters !!!")
 checkForErrorDoBadExit($axis)
 $distance = InputBox($axis & "-modification value", "Please enter the value in how far you want to alter the " & $axis & "-values of you model in the gcode-file." & @CRLF & "!!! Do use a point as seperator !!!")
 checkForErrorDoBadExit($distance)
@@ -43,7 +44,10 @@ checkForErrorDoBadExit($array)
 ;program
 exitableMsgBox($MB_OKCANCEL + $MB_ICONINFORMATION, "Process starts", "Now the content of the file" & @CRLF & '"' & $fileNameAndPath & '"' & @CRLF &  "will be pasted into the file" & @CRLF & '"' & $saveFileNameAndPath & '"' & @CRLF & "with " & $axis & "-values modified by " & $distance & " mm"  & @CRLF & @CRLF & "This will take several minutes depending on how big your object is." )
 
-For $i = 0 To UBound($array) - 1
+$timeOld = _NowCalc()
+
+$arraySize = UBound($array)
+For $i = 0 To $arraySize - 1
    $line = $array[$i]
    $matches = StringRegExp($line, "G1.*" & $axis & "([0-9]+.[0-9]+)", $STR_REGEXPARRAYMATCH)
    If $matches <> 0 Then ;when there is a occurence of axis-values
@@ -57,3 +61,9 @@ For $i = 0 To UBound($array) - 1
    EndIf
    FileWriteLine($saveFileNameAndPath, $line)
 Next
+
+$timeNew = _NowCalc()
+$neededTime = _DateDiff("s", $timeOld, $timeNew)
+
+
+MsgBox($MB_OK, "Finished", "Process finished after " & $neededTime & " seconds." & @CRLF & $arraySize & " lines have been copied/modified.")
