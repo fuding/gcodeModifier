@@ -4,7 +4,7 @@
  Author:         Marvin Baral
 
  Script Function:
-	Modify z-values in gcode
+	Modify values in gcode
 
 #ce ----------------------------------------------------------------------------
 #include <Constants.au3>
