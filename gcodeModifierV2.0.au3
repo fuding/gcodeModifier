@@ -67,8 +67,8 @@ GUICtrlCreateLabel("input file", $paddingX, $top + 5)
 $top += $objHeight
 $inpInpFile = GUICtrlCreateInput($fileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
 $btnInpFile = GUICtrlCreateButton("Browse", $width - $fileButtonWidth - $paddingX, $top, $fileButtonWidth, $objHeight)
-GUICtrlSetOnEvent($btnInpFile, "_addInpFile")
-   Func _addInpFile()
+GUICtrlSetOnEvent($btnInpFile, "addInpFile")
+   Func addInpFile()
 	  Do
 		 $fileNameAndPath = FileOpenDialog("load gcode file", "C:\Users\Marvin\Documents\3D-Druck", "Gcode-files (*.gcode)| All (*.*)")
 		 If $fileNameAndPath == "" Then
@@ -85,8 +85,8 @@ $top += $objHeight
 $inpOutpFile = GUICtrlCreateInput($saveFileNameAndPath, $paddingX, $top, $width - 2* $paddingX - $fileButtonWidth, $objHeight)
 $btnOutpFile = GUICtrlCreateButton("Browse", $width - $fileButtonWidth - $paddingX, $top, $fileButtonWidth, $objHeight)
 $top += $objHeight
-GUICtrlSetOnEvent($btnOutpFile, "_addOutpFile")
-   Func _addOutpFile()
+GUICtrlSetOnEvent($btnOutpFile, "addOutpFile")
+   Func addOutpFile()
 	  Do
 		 $saveFileNameAndPath = FileSaveDialog("choose file to save modified content", "C:\Users\Marvin\Documents\3D-Druck","Gcode-files (*.gcode)| All (*.*)",  $FD_PROMPTOVERWRITE)
 		 If $saveFileNameAndPath == "" Then
@@ -107,7 +107,7 @@ $top += $objHeight
 Global $inptsAxis[3]
 For $i = 0 To 2
    GUICtrlCreateLabel($labelsAxis[$i] & ':', $paddingX, $top, $axisLabelWidth, $objHeight)
-   $inptsAxis[$i] = GUICtrlCreateInput($values[$i], $paddingX + $axisLabelWidth, $top, $width - $paddingX - $axisLabelWidth, $objHeight)
+   $inptsAxis[$i] = GUICtrlCreateInput($values[$i], $paddingX + $axisLabelWidth, $top, $width - 1.5 * $paddingX - $axisLabelWidth, $objHeight)
    GUICtrlCreateUpdown($inptsAxis[$i])
    GUICtrlSetOnEvent($inptsAxis[$i], "updateAndChecValues")
    $top += $objHeight
@@ -125,6 +125,8 @@ Next
 	  Return $success
    EndFunc
 ;===============================================================================================================================================
+
+$saveObjHeight = $objHeight
 $objHeight = 50
 $top = $height - $paddingX - $objHeight
 GUISetFont(14)
@@ -139,7 +141,38 @@ GUICtrlSetOnEvent($btnHelp, "showHelp")
 		 MsgBox($MB_OK, "content of " & $readmeFile, $content)
 	  EndIf
    EndFunc
+;===============================================================================================================================================
+GUISetFont(8.5)
+$top = $saveTop
+$objHeight = $saveObjHeight
+GUICtrlCreateLabel("modify code", 0.5*$paddingX + $width, $top, $width - $paddingX, $objHeight)
+$top += $objHeight
+$chbCutZ = GUICtrlCreateCheckbox("cut off (G1)-code until Z = ", 0.5*$paddingX + $width, $top)
+$inpWidth = 100
+$inpCutZ = GUICtrlCreateInput("0", 0.5*$paddingX + 2 * $width - $inpWidth, $top, $inpWidth - $paddingX, $objHeight)
+GUICtrlCreateUpdown($inpCutZ)
+GUICtrlSetState($inpCutZ, $GUI_DISABLE)
+GUICtrlSetOnEvent($chbCutZ, "ungreyOrGreyChb")
+GUICtrlSetState($inpCutZ, $GUI_ENABLE)
+   Func ungreyOrGreyChb()
+	  $state = GUICtrlRead($chbCutZ)
+	  MsgBox(0, "Debug", $state)
+	  Switch $state
+	  Case $state = 1: GUICtrlSetState($inpCutZ, $GUI_ENABLE)
+	  Case $state = 4: GUICtrlSetState($inpCutZ, $GUI_DISABLE)
+	  Case Else
+		 MsgBox($MB_OK + $MB_ICONERROR, "Error", "Unknown value of checkboxstate occured in switch expression: " & $state)
+		 GUICtrlSetState($inpCutZ, $GUI_DISABLE)
+	  EndSwitch
+   EndFunc
 
+$top += $objHeight
+$chbDelHomeZ = GUICtrlCreateCheckbox("delete 'home z-axis' commands", 0.5*$paddingX + $width, $top, $width - 1.5 * $paddingX, $objHeight)
+$top += $objHeight
+$chbModelToGround = GUICtrlCreateCheckbox("set model to ground (Z = 0)", 0.5*$paddingX + $width, $top, $width - 1.5 * $paddingX, $objHeight)
+$top += $objHeight
+
+;========================================================End of GUI=============================================================================
 While 1
    ;endless loop where process stays and waits for commands
 WEnd
@@ -150,11 +183,21 @@ WEnd
 		 Return False
 	  EndIf
 
+	  ;find out whether to delet home z-axis commands
+	  $deleteHomeZCommands = False
+	  Switch GUICtrlRead($chbDelHomeZ)
+	  Case $GUI_CHECKED:
+		 $deleteHomeZCommands = True
+	  Case $GUI_UNCHECKED:
+		 $deleteHomeZCommands = False
+	  EndSwitch
+
 	  For $i = 0 To 2
 		 $doModify[$i] = $values[$i] <> 0
 	  Next
 
-	  If $doModify[0] Or $doModify[1] Or $doModify[2] Then
+	  ;check whether modification really is needed
+	  If $doModify[0] Or $doModify[1] Or $doModify[2] Or $deleteHomeZCommands Then
 
 		 ProgressOn("progress", "starting...", "reading file " & '"' & $fileNameAndPath & '"' & "into array", -1, -1, $DLG_MOVEABLE + $DLG_NOTONTOP)
 
@@ -181,6 +224,15 @@ WEnd
 				  EndIf
 			   EndIf
 			Next
+			If $deleteHomeZCommands Then
+			   If StringRegExp($line, "G28 *[^XY]*", $STR_REGEXPMATCH) Then
+				  $line = "G28 X0 ; home x-axis(added with gcodeModifier)"
+				  FileWriteLine($saveFileNameAndPath, $line)
+				  $line = "G28 Y0 ; home y-axis(added with gcodeModifier)"
+
+				  Msgbox(0, "Debug", "Deleted home-z command")
+			   EndIf
+			EndIf
 			FileWriteLine($saveFileNameAndPath, $line)
 			If $i + 1 >= $saveIndex + $step Or $i + 1 = $arraySize Then
 			   $progressPercent = Round($i / $arraySize * 100)
