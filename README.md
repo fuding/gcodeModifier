@@ -1,5 +1,5 @@
 # gcodeModifier
-# author: Marvin Baral
+Author: Marvin Baral(marvinbaral1997@gmail.com)
 
 This program modifies gcode (from RepRap software with slic3r) by changing values in position-commands(G1) of certain axis by certain values in one whole gcode-file. You define the input(read) and the output(write) file, which even can be the same.
 
